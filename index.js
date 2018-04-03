@@ -1,6 +1,7 @@
-const request = require('request-promise-native');
+const request = require('request');
 
-const sendMessage = (message) => {
+/*
+const sendMessageASync = (message) => {
   return request({
     method: 'POST',
     url: process.env.WEBHOOK_URL,
@@ -15,10 +16,54 @@ const sendMessage = (message) => {
       }
     });
 };
+*/
+const sendMessage = function(message){
+  return request({
+    method: 'POST',
+    url: process.env.WEBHOOK_URL,
+    body: message,
+    json: true,
+  }, function(body){
+      if (body === 'ok') {
+        return {};
+      } else {
+        throw new Error(body);
+      }
+    });
+};
 
-const processRecord = (record) => {
+const processRecord = function(record) {
+  var message;
   const subject = record.Sns.Subject;
-  const message = JSON.parse(record.Sns.Message);
+  console.log('record.Sns.Message: ' + record.Sns.Message);
+  try {
+     message = JSON.parse(record.Sns.Message);
+  }catch (e){
+    return sendMessage({ text: record.Sns.Message, 
+         attachments: [
+           {
+              text: "New Test",
+              fields: [{
+                title: 'Time',
+                value: "No",
+                short: true,
+              }, {
+                title: 'Alarm',
+                value: 'Test Alarm',
+                short: true,
+              }, {
+                title: 'Account',
+                value: 'kdfjlakjdf',
+                short: true,
+              }, {
+                title: 'Region',
+                value: 'My Home',
+                short: true,
+              }],
+     
+           } 
+         ] });
+  }
   return sendMessage({
     text: subject,
     attachments: [{
@@ -67,7 +112,7 @@ example event:
   }]
 }
 */
-exports.event = (event, context, cb) => {
+exports.handler = function(event, context, cb){
   console.log(`event received: ${JSON.stringify(event)}`);
   Promise.all(event.Records.map(processRecord))
     .then(() => cb(null))
